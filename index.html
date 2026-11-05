@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Самодиагностика качеств саблида</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap&subset=cyrillic" rel="stylesheet">
+<style>
+  :root {
+    --bg: #E1E8F3;
+    --accent: #5E86C2;
+    --ink: #1d2b44;
+    --card: #ffffff;
+    --track: #c9d5e8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Roboto', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .practice {
+    width: 100%;
+    padding: 24px clamp(16px, 4vw, 48px) 32px;
+  }
+  .question {
+    background: var(--card);
+    border-left: 6px solid var(--accent);
+    border-radius: 8px;
+    padding: 18px 20px 20px;
+    margin-bottom: 18px;
+  }
+  .q-title {
+    display: block;
+    font-weight: 500;
+    font-size: 18px;
+    margin-bottom: 6px;
+  }
+  .q-desc {
+    margin: 0 0 18px;
+    font-size: 15px;
+    color: #2c3e5e;
+  }
+
+  /* ползунок */
+  .scale { --v: 0; }
+  .scale input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+  .scale input[type="range"]::-webkit-slider-runnable-track {
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right,
+      var(--accent) calc(14px + (100% - 28px) * var(--v)),
+      var(--track) calc(14px + (100% - 28px) * var(--v)));
+  }
+  .scale input[type="range"]::-moz-range-track {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--track);
+  }
+  .scale input[type="range"]::-moz-range-progress {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--accent);
+  }
+  .scale input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    margin-top: -10px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 4px solid #fff;
+    box-shadow: 0 0 0 2px var(--accent), 0 2px 4px rgba(29,43,68,.25);
+  }
+  .scale input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 4px solid #fff;
+    box-shadow: 0 0 0 2px var(--accent), 0 2px 4px rgba(29,43,68,.25);
+  }
+  /* пока ползунок не тронут — серый */
+  .scale.untouched input[type="range"]::-webkit-slider-thumb {
+    background: #9fb0cc;
+    box-shadow: 0 0 0 2px #9fb0cc, 0 2px 4px rgba(29,43,68,.15);
+  }
+  .scale.untouched input[type="range"]::-moz-range-thumb {
+    background: #9fb0cc;
+    box-shadow: 0 0 0 2px #9fb0cc, 0 2px 4px rgba(29,43,68,.15);
+  }
+  .scale.untouched input[type="range"]::-webkit-slider-runnable-track {
+    background: var(--track);
+  }
+  .scale.untouched input[type="range"]::-moz-range-progress {
+    background: var(--track);
+  }
+  .scale input[type="range"]:focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 4px;
+    border-radius: 6px;
+  }
+  .ticks {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 14px;
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #2c3e5e;
+  }
+  .ticks span { width: 0; display: flex; justify-content: center; }
+  .tick-labels { margin-top: 0; font-size: 14px; font-weight: 400; white-space: nowrap; }
+  .scale:not(.untouched) .ticks span.on { color: var(--accent); font-weight: 700; }
+
+  button {
+    font: inherit;
+    font-weight: 500;
+    font-size: 16px;
+    color: #fff;
+    background: var(--accent);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: background .15s, transform .05s;
+  }
+  button:hover:not(:disabled) { background: #4a72ad; border-color: #4a72ad; }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:focus-visible { outline: 3px solid #1d2b44; outline-offset: 2px; }
+  button:disabled {
+    background: #b9c7de;
+    border-color: #b9c7de;
+    color: #6f7f99;
+    cursor: not-allowed;
+  }
+  .actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .hint { font-size: 14px; color: #2c3e5e; }
+  .hint[hidden] { display: none; }
+  #status { font-size: 14px; min-height: 1.4em; margin-top: 10px; }
+
+  /* лист для PDF */
+  #pdf-hide { position: absolute; left: -10000px; top: 0; }
+  .pdf-sheet {
+    width: 700px;
+    padding: 32px;
+    background: #fff;
+    color: #1d2b44;
+    font-family: 'Roboto', Arial, sans-serif;
+  }
+  .pdf-sheet h2 { margin: 0 0 4px; font-size: 22px; color: #5E86C2; }
+  .pdf-sheet .date { margin: 0 0 20px; font-size: 12px; color: #5b6b85; }
+  .pdf-sheet .row {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border-left: 4px solid #5E86C2;
+    background: #eef3fa;
+    page-break-inside: avoid;
+  }
+  .pdf-sheet .row-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .pdf-sheet .row-score { white-space: nowrap; color: #5E86C2; font-weight: 700; }
+  .pdf-sheet .bar { height: 10px; border-radius: 5px; background: #c9d5e8; overflow: hidden; }
+  .pdf-sheet .bar i { display: block; height: 100%; background: #5E86C2; }
+</style>
+</head>
+<body>
+<main class="practice" id="practice"></main>
+
+<div id="pdf-hide" aria-hidden="true">
+<div class="pdf-sheet" id="pdf-sheet">
+  <h2>Самодиагностика: качества саблида</h2>
+  <p class="date" id="pdf-date"></p>
+  <div id="pdf-rows"></div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+(function () {
+  var qualities = [
+    { name: 'Организованность и тайм-менеджмент',
+      desc: 'Твой день не принадлежит только тебе. Ты умеешь планировать время так, чтобы его хватало на постановку задач, проверку результатов и регулярную обратную связь.' },
+    { name: 'Эмпатия и коммуникация',
+      desc: 'Ты умеешь слушать и слышать. Ты вовремя замечаешь, если коллега выгорел или потерял мотивацию, и вовремя перестраиваешь процесс. Ты можешь объяснить сложное простыми словами, говорить честно, но бережно.' },
+    { name: 'Ответственность за результат',
+      desc: 'Ты мыслишь не «я свою задачу закрыл, остальное не волнует», а «мы отвечаем за результат всей командой». Ты чётко понимаешь, по каким метрикам бизнес оценивает эффективность твоего направления.' },
+    { name: 'Проактивность',
+      desc: 'Ты не ждёшь готовых указаний сверху, а самостоятельно ищешь решения, видишь зоны роста и предлагаешь улучшения.' },
+    { name: 'Системное мышление',
+      desc: 'Ты видишь, как отдельные задачи влияют на проект в целом. При оценке любой идеи ты задаёшь себе главный вопрос: «Как и зачем это сработает на бизнес или пользователя?».' },
+    { name: 'Экспертное лидерство',
+      desc: 'У тебя есть профессиональная глубина, за которой действительно хочется идти. Ты задаёшь понятную планку качества и помогаешь команде принимать сильные решения. Ты делишься опытом и превращаешь свои знания в системные практики, поэтому люди вокруг тебя растут и создают качественный результат для пользователей и бизнеса даже без твоего постоянного участия.' }
+  ];
+
+  var root = document.getElementById('practice');
+  var touched = qualities.map(function () { return false; });
+  var sliders = [], scales = [], tickSets = [];
+
+  qualities.forEach(function (q, i) {
+    var sec = document.createElement('section');
+    sec.className = 'question';
+
+    var title = document.createElement('span');
+    title.className = 'q-title';
+    title.id = 'q' + i + '-title';
+    title.textContent = (i + 1) + '. ' + q.name;
+
+    var desc = document.createElement('p');
+    desc.className = 'q-desc';
+    desc.id = 'q' + i + '-desc';
+    desc.textContent = q.desc;
+
+    var scale = document.createElement('div');
+    scale.className = 'scale untouched';
+
+    var input = document.createElement('input');
+    input.type = 'range';
+    input.min = 0; input.max = 10; input.step = 1; input.value = 0;
+    input.id = 's' + i;
+    input.setAttribute('aria-labelledby', title.id);
+    input.setAttribute('aria-describedby', desc.id);
+    input.setAttribute('aria-valuetext', 'не выбрано');
+
+    var ticks = document.createElement('div');
+    ticks.className = 'ticks';
+    ticks.setAttribute('aria-hidden', 'true');
+    var tickEls = [];
+    for (var n = 0; n <= 10; n++) {
+      var t = document.createElement('span');
+      t.textContent = n;
+      ticks.appendChild(t);
+      tickEls.push(t);
+    }
+
+    scale.appendChild(input);
+    scale.appendChild(ticks);
+    var labels = document.createElement('div');
+    labels.className = 'ticks tick-labels';
+    var words = { 0: 'никогда', 3: 'редко', 7: 'часто', 10: 'всегда' };
+    for (var m = 0; m <= 10; m++) {
+      var lb = document.createElement('span');
+      if (words[m]) lb.textContent = words[m];
+      labels.appendChild(lb);
+    }
+    scale.appendChild(labels);
+    sec.appendChild(title);
+    sec.appendChild(desc);
+    sec.appendChild(scale);
+    root.appendChild(sec);
+
+    sliders.push(input); scales.push(scale); tickSets.push(tickEls);
+
+    function render() {
+      var v = +input.value;
+      scale.style.setProperty('--v', v / 10);
+      tickEls.forEach(function (el, k) { el.className = (k === v) ? 'on' : ''; });
+      if (touched[i]) input.setAttribute('aria-valuetext', v + ' из 10');
+    }
+    function touch() {
+      if (!touched[i]) {
+        touched[i] = true;
+        scale.classList.remove('untouched');
+      }
+      render();
+      update();
+    }
+    input.addEventListener('input', touch);
+    input.addEventListener('change', touch);
+    input.addEventListener('pointerdown', function () { touch(); });
+    input.addEventListener('keydown', function (e) {
+      if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].indexOf(e.key) !== -1) {
+        setTimeout(touch, 0);
+      }
+    });
+    render();
+  });
+
+  var actions = document.createElement('div');
+  actions.className = 'actions';
+  actions.innerHTML =
+    '<button id="save" type="button" hidden>Сохранить результаты в PDF</button>' +
+    '<span class="hint" id="hint">Передвинь все ползунки, чтобы сохранить результат</span>';
+  root.appendChild(actions);
+  var status = document.createElement('div');
+  status.id = 'status';
+  status.setAttribute('role', 'status');
+  status.setAttribute('aria-live', 'polite');
+  root.appendChild(status);
+
+  var btn = document.getElementById('save');
+  var hint = document.getElementById('hint');
+
+  function update() {
+    var ok = touched.every(Boolean);
+    btn.hidden = !ok;
+    hint.hidden = ok;
+  }
+
+  btn.addEventListener('click', function () {
+    if (btn.hidden) return;
+    var rows = document.getElementById('pdf-rows');
+    rows.innerHTML = '';
+    qualities.forEach(function (q, i) {
+      var v = +sliders[i].value;
+      var row = document.createElement('div');
+      row.className = 'row';
+      var head = document.createElement('div');
+      head.className = 'row-head';
+      var name = document.createElement('span');
+      name.textContent = (i + 1) + '. ' + q.name;
+      var score = document.createElement('span');
+      score.className = 'row-score';
+      score.textContent = v + ' из 10';
+      head.appendChild(name);
+      head.appendChild(score);
+      var bar = document.createElement('div');
+      bar.className = 'bar';
+      var fill = document.createElement('i');
+      fill.style.width = (v / 10 * 100) + '%';
+      bar.appendChild(fill);
+      row.appendChild(head);
+      row.appendChild(bar);
+      rows.appendChild(row);
+    });
+    document.getElementById('pdf-date').textContent = new Date().toLocaleDateString('ru-RU');
+    status.textContent = 'Готовлю PDF…';
+
+    function fallback() {
+      status.textContent = 'Не удалось создать PDF автоматически. В открывшемся окне печати выбери «Сохранить как PDF».';
+      window.print();
+    }
+    if (!window.html2pdf) { fallback(); return; }
+    html2pdf().set({
+      margin: 10,
+      filename: 'samodiagnostika-sablid.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).from(document.getElementById('pdf-sheet')).save().then(function () {
+      status.textContent = 'PDF сохранён.';
+    }).catch(fallback);
+  });
+
+  update();
+})();
+</script>
+</body>
+</html>
